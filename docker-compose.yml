@@ -1,0 +1,186 @@
+ version: '3.8'
+
+services:
+  # =============================================================================
+  # DATABASES
+  # =============================================================================
+  
+  product-config-db:
+    image: postgres:15-alpine
+    container_name: erp-product-config-postgres
+    environment:
+      POSTGRES_DB: product_config_db
+      POSTGRES_USER: product_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-SecurePassword123!}
+    ports:
+      - "5433:5432"
+    volumes:
+      - product_config_data:/var/lib/postgresql/data
+      - ./infrastructure/databases/product-config/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - erp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U product_user -d product_config_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  offer-management-db:
+    image: postgres:15-alpine
+    container_name: erp-offer-management-postgres
+    environment:
+      POSTGRES_DB: offer_management_db
+      POSTGRES_USER: offer_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-SecurePassword123!}
+    ports:
+      - "5434:5432"
+    volumes:
+      - offer_management_data:/var/lib/postgresql/data
+      - ./infrastructure/databases/offer-management/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - erp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U offer_user -d offer_management_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  customer-management-db:
+    image: postgres:15-alpine
+    container_name: erp-customer-management-postgres
+    environment:
+      POSTGRES_DB: customer_management_db
+      POSTGRES_USER: customer_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-SecurePassword123!}
+    ports:
+      - "5435:5432"
+    volumes:
+      - customer_management_data:/var/lib/postgresql/data
+      - ./infrastructure/databases/customer-management/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - erp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U customer_user -d customer_management_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  risk-assessment-db:
+    image: postgres:15-alpine
+    container_name: erp-risk-assessment-postgres
+    environment:
+      POSTGRES_DB: risk_assessment_db
+      POSTGRES_USER: risk_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-SecurePassword123!}
+    ports:
+      - "5436:5432"
+    volumes:
+      - risk_assessment_data:/var/lib/postgresql/data
+      - ./infrastructure/databases/risk-assessment/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - erp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U risk_user -d risk_assessment_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =============================================================================
+  # INFRASTRUCTURE
+  # =============================================================================
+  
+  redis:
+    image: redis:7-alpine
+    container_name: erp-redis
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-RedisSecurePass123!}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - erp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: erp-keycloak
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN_USER:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_HTTP_ENABLED: true
+      KC_HOSTNAME_STRICT: false
+      KC_HOSTNAME_STRICT_HTTPS: false
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./infrastructure/security/keycloak:/opt/keycloak/data/import:ro
+    networks:
+      - erp-network
+    restart: unless-stopped
+    command: ["start-dev", "--import-realm"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/ready || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # =============================================================================
+  # MONITORING
+  # =============================================================================
+  
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: erp-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infrastructure/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    networks:
+      - erp-network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.1.0
+    container_name: erp-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infrastructure/monitoring/grafana:/etc/grafana/provisioning:ro
+    networks:
+      - erp-network
+    restart: unless-stopped
+
+volumes:
+  product_config_data:
+  offer_management_data:
+  customer_management_data:
+  risk_assessment_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  erp-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
