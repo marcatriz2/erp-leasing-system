@@ -1,16 +1,18 @@
-version: "3.9"
-
-services:
+﻿services:
   traefik:
     image: traefik:v2.11
     container_name: traefik
     command:
-      - "--providers.file.directory=/etc/traefik/dynamic"
-      - "--providers.file.watch=true"
-      - "--entrypoints.web.address=:${TRAEFIK_HTTP_PORT}"
-      - "--api.dashboard=true"
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.file.directory=/etc/traefik/dynamic
+      - --providers.file.watch=true
+      - --entrypoints.web.address=:${TRAEFIK_HTTP_PORT}
+      - --api.dashboard=true
+      - --api.insecure=true
     ports:
-      - "${TRAEFIK_HTTP_PORT}:${TRAEFIK_HTTP_PORT}"
+      - ${TRAEFIK_HTTP_PORT}:${TRAEFIK_HTTP_PORT}   # ex: 8088:8088 (din .env)
+      - 8080:8080                                   # dashboard Traefik
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
@@ -22,10 +24,19 @@ services:
       context: ./ui-landing
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.ui.rule=Host(`ui.localhost`)"
+      # localhost:8088/ui
+      - "traefik.http.routers.ui-local.rule=Host(`localhost`) && PathPrefix(`/ui`)"
+      - "traefik.http.middlewares.ui-strip.stripprefix.prefixes=/ui"
+      - "traefik.http.routers.ui-local.middlewares=ui-strip"
       - "traefik.http.services.ui.loadbalancer.server.port=80"
+      # redirect din / -> /ui (pe localhost)
+      - "traefik.http.routers.root-local.rule=Host(`localhost`) && Path(`/`)"
+      - "traefik.http.routers.root-local.middlewares=to-ui"
+      - "traefik.http.middlewares.to-ui.redirectregex.regex=^/$"
+      - "traefik.http.middlewares.to-ui.redirectregex.replacement=/ui"
+      - "traefik.http.middlewares.to-ui.redirectregex.permanent=false"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost || exit 1"]
       interval: 10s
       timeout: 3s
       retries: 10
@@ -40,29 +51,37 @@ services:
       - ${GRAFANA_DATA}:/var/lib/grafana
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.grafana.rule=Host(`grafana.localhost`)"
+      # localhost:8088/grafana
+      - "traefik.http.routers.grafana-local.rule=Host(`localhost`) && PathPrefix(`/grafana`)"
+      - "traefik.http.middlewares.grafana-strip.stripprefix.prefixes=/grafana"
+      - "traefik.http.routers.grafana-local.middlewares=grafana-strip"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/ || exit 1"]
       interval: 10s
-      timeout: 3s
+      timeout: 5s
       retries: 30
     restart: unless-stopped
 
   keycloak:
     image: quay.io/keycloak/keycloak:24.0.5
-    command: ["start-dev", "--http-port=8080"]
+    command:
+      - start-dev
+      - --http-port=8080
     environment:
       - KEYCLOAK_ADMIN=${KEYCLOAK_USER}
       - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_PASSWORD}
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.auth.rule=Host(`auth.localhost`)"
-      - "traefik.http.services.auth.loadbalancer.server.port=8080"
     volumes:
       - ${KEYCLOAK_DATA}:/opt/keycloak/data
+    labels:
+      - "traefik.enable=true"
+      # localhost:8088/auth
+      - "traefik.http.routers.auth-local.rule=Host(`localhost`) && PathPrefix(`/auth`)"
+      - "traefik.http.middlewares.auth-strip.stripprefix.prefixes=/auth"
+      - "traefik.http.routers.auth-local.middlewares=auth-strip"
+      - "traefik.http.services.auth.loadbalancer.server.port=8080"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/ || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 30
