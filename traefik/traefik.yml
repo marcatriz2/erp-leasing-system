@@ -1,8 +1,17 @@
 api:
   dashboard: true
-  insecure: true  # dev only
+  insecure: true   # doar pentru dev
+
+entryPoints:
+  http:
+    address: ":8088"
+  traefik:
+    address: ":8080"
 
 providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
   file:
     directory: /etc/traefik/dynamic
     watch: true
