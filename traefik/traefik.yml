@@ -1,0 +1,8 @@
+api:
+  dashboard: true
+  insecure: true  # dev only
+
+providers:
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
