@@ -1,0 +1,34 @@
+# General
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.swp
+*.swo
+*.swn
+*.bak
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+dist/
+build/
+.cache/
+coverage/
+
+# Java / Spring
+target/
+*.iml
+.idea/
+out/
+.gradle/
+build/
+
+# Python (if any tools)
+__pycache__/
+*.pyc
+.venv/

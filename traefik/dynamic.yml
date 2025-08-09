@@ -1,0 +1,8 @@
+http:
+  middlewares:
+    compression:
+      compress: {}
+  routers:
+    # Extra routers can be placed here if needed
+  services:
+    # Extra services can be placed here if needed

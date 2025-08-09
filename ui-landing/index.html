@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ERP Leasing — Dev Landing</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji'; margin: 0; background: #0b1220; color: #e6edf3; }
+      .wrap { max-width: 920px; margin: 0 auto; padding: 48px 24px; }
+      .card { background: #0f172a; border: 1px solid #1f2a44; border-radius: 16px; padding: 28px; box-shadow: 0 10px 30px rgba(0,0,0,0.35); }
+      h1 { font-size: 28px; margin: 0 0 12px; }
+      p { line-height: 1.55; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); gap: 16px; margin-top: 24px; }
+      .tile { background:#0b132b; border:1px solid #1f2a44; border-radius: 14px; padding:16px; }
+      .tile a { color:#6ab0ff; text-decoration:none; }
+      .muted { color:#9fb3c8; font-size:14px; }
+      code { background:#101826; padding:2px 6px; border-radius:6px; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <h1>ERP Leasing — Dev Stack is Up ✅</h1>
+        <p class="muted">This is a minimal landing page served via Nginx behind Traefik.</p>
+        <div class="grid">
+          <div class="tile">
+            <h3>Grafana</h3>
+            <p>Metrics & dashboards.</p>
+            <p><a href="http://grafana.localhost" target="_blank" rel="noreferrer">Open Grafana</a></p>
+          </div>
+          <div class="tile">
+            <h3>Keycloak</h3>
+            <p>Auth server (dev mode).</p>
+            <p><a href="http://auth.localhost" target="_blank" rel="noreferrer">Open Keycloak</a></p>
+          </div>
+          <div class="tile">
+            <h3>Docs</h3>
+            <p>See <code>README.md</code> for next steps.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
